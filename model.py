@@ -30,16 +30,23 @@ class Network(nn.Module):
   # -----------------------------------------------------------------------------#
 
 class CosineLoss(nn.Module):
-    def __init__(self):
+    def __init__(self, use_torch_cosine_embedding_loss=False):
         super(CosineLoss, self).__init__()
         self.criterion = nn.CosineEmbeddingLoss()
         self.eps = 1e-8
+        self.use_torch_cosine_embedding_loss = use_torch_cosine_embedding_loss
+
+    def cosine_similarity(self, x,y):
+      dot_product = torch.dot(x,y)
+      product_norm = torch.norm(x) * torch.norm(y)
+      return dot_product/product_norm
 
     def forward(self, x, y):        
         loss = 0
         for x_i,y_i in zip(x, y):
-          loss = loss + (1-self.criterion(x_i, y_i, torch.ones_like(x_i[0]))) # cosine embedding loss = 1-cos(x,y) so we need to subtract it from 1
+          if self.use_torch_cosine_embedding_loss:
+            loss = loss + torch.abs(1-self.criterion(x_i, y_i, torch.ones_like(x_i[0]))) # cosine embedding loss = 1-cos(x,y) so we need to subtract it from 1
+          else:
+            loss = loss + self.cosine_similarity(x_i,y_i)
+          print(f'[INFO] loss = {loss}')
         return loss + self.eps
-
-
-
